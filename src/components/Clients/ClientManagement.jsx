@@ -9,7 +9,7 @@ import WarehouseManager from './WarehouseManager';
 import ClientImageManager from './ClientImageManager';
 import ContactManager from './ContactManager';
 
-const { FiPlus, FiEdit, FiTrash, FiMapPin, FiUser, FiPhone, FiMail, FiImage, FiMap, FiCheck, FiDollarSign } = FiIcons;
+const { FiPlus, FiEdit, FiTrash, FiMapPin, FiUser, FiPhone, FiMail, FiImage, FiMap } = FiIcons;
 
 const ClientManagement = () => {
   const { clients, addClient, updateClient, deleteClient } = useOrderStore();
@@ -18,7 +18,6 @@ const ClientManagement = () => {
   const [showWarehouseManager, setShowWarehouseManager] = useState(null);
   const [showImageManager, setShowImageManager] = useState(null);
   const [showContactManager, setShowContactManager] = useState(null);
-  const [filterRole, setFilterRole] = useState('all');
 
   const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm();
 
@@ -26,8 +25,6 @@ const ClientManagement = () => {
     try {
       const clientData = {
         ...data,
-        is_buyer: data.is_buyer === 'on',
-        is_seller: data.is_seller === 'on',
         warehouses: data.warehouses || [],
         images: data.images || [],
         notes: data.notes || [],
@@ -38,10 +35,10 @@ const ClientManagement = () => {
 
       if (editingClient) {
         updateClient(editingClient.id, clientData);
-        toast.success('Soggetto aggiornato con successo!');
+        toast.success('Cliente aggiornato con successo!');
       } else {
         addClient(clientData);
-        toast.success('Soggetto aggiunto con successo!');
+        toast.success('Cliente aggiunto con successo!');
       }
 
       reset();
@@ -61,15 +58,13 @@ const ClientManagement = () => {
     setValue('sdi', client.sdi);
     setValue('phone', client.phone);
     setValue('email', client.email);
-    setValue('is_buyer', client.is_buyer ? 'on' : 'off');
-    setValue('is_seller', client.is_seller ? 'on' : 'off');
     setShowForm(true);
   };
 
   const handleDelete = (clientId) => {
-    if (window.confirm('Sei sicuro di voler eliminare questo soggetto?')) {
+    if (window.confirm('Sei sicuro di voler eliminare questo cliente?')) {
       deleteClient(clientId);
-      toast.success('Soggetto eliminato');
+      toast.success('Cliente eliminato');
     }
   };
 
@@ -97,18 +92,10 @@ const ClientManagement = () => {
     }
   };
 
-  const filteredClients = clients.filter(client => {
-    if (filterRole === 'all') return true;
-    if (filterRole === 'buyer') return client.is_buyer;
-    if (filterRole === 'seller') return client.is_seller;
-    if (filterRole === 'both') return client.is_buyer && client.is_seller;
-    return true;
-  });
-
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-nordic-800">Gestione Soggetti</h1>
+        <h1 className="text-2xl font-bold text-nordic-800">Gestione Clienti</h1>
         <motion.button
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
@@ -116,7 +103,7 @@ const ClientManagement = () => {
           className="bg-sage-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-sage-700 transition-colors duration-200 flex items-center gap-2"
         >
           <SafeIcon icon={FiPlus} className="w-5 h-5" />
-          Nuovo Soggetto
+          Nuovo Cliente
         </motion.button>
       </div>
 
@@ -134,7 +121,7 @@ const ClientManagement = () => {
           >
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-semibold text-nordic-800">
-                {editingClient ? 'Modifica Soggetto' : 'Nuovo Soggetto'}
+                {editingClient ? 'Modifica Cliente' : 'Nuovo Cliente'}
               </h2>
               <button
                 onClick={() => {
@@ -147,6 +134,7 @@ const ClientManagement = () => {
                 ✕
               </button>
             </div>
+
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -246,31 +234,8 @@ const ClientManagement = () => {
                     <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>
                   )}
                 </div>
-                <div className="md:col-span-2 flex flex-wrap gap-4">
-                  <div className="flex items-center bg-blue-50 px-4 py-2 rounded-lg">
-                    <input
-                      {...register('is_buyer')}
-                      type="checkbox"
-                      id="is_buyer"
-                      className="w-4 h-4 text-sage-600 border-nordic-300 rounded focus:ring-sage-500"
-                    />
-                    <label htmlFor="is_buyer" className="ml-2 text-sm font-medium text-blue-800">
-                      È un Compratore
-                    </label>
-                  </div>
-                  <div className="flex items-center bg-green-50 px-4 py-2 rounded-lg">
-                    <input
-                      {...register('is_seller')}
-                      type="checkbox"
-                      id="is_seller"
-                      className="w-4 h-4 text-sage-600 border-nordic-300 rounded focus:ring-sage-500"
-                    />
-                    <label htmlFor="is_seller" className="ml-2 text-sm font-medium text-green-800">
-                      È un Venditore
-                    </label>
-                  </div>
-                </div>
               </div>
+
               <div className="flex justify-end gap-3 pt-4">
                 <button
                   type="button"
@@ -323,55 +288,6 @@ const ClientManagement = () => {
         />
       )}
 
-      {/* Filter Controls */}
-      <div className="bg-white rounded-xl p-4 border border-nordic-200">
-        <div className="flex flex-wrap gap-2">
-          <button
-            onClick={() => setFilterRole('all')}
-            className={`px-4 py-2 rounded-lg transition-colors ${
-              filterRole === 'all'
-                ? 'bg-sage-600 text-white'
-                : 'bg-nordic-100 text-nordic-700 hover:bg-nordic-200'
-            }`}
-          >
-            Tutti i Soggetti
-          </button>
-          <button
-            onClick={() => setFilterRole('buyer')}
-            className={`px-4 py-2 rounded-lg transition-colors flex items-center gap-2 ${
-              filterRole === 'buyer'
-                ? 'bg-blue-600 text-white'
-                : 'bg-blue-50 text-blue-700 hover:bg-blue-100'
-            }`}
-          >
-            <SafeIcon icon={FiUser} className="w-4 h-4" />
-            Solo Compratori
-          </button>
-          <button
-            onClick={() => setFilterRole('seller')}
-            className={`px-4 py-2 rounded-lg transition-colors flex items-center gap-2 ${
-              filterRole === 'seller'
-                ? 'bg-green-600 text-white'
-                : 'bg-green-50 text-green-700 hover:bg-green-100'
-            }`}
-          >
-            <SafeIcon icon={FiDollarSign} className="w-4 h-4" />
-            Solo Venditori
-          </button>
-          <button
-            onClick={() => setFilterRole('both')}
-            className={`px-4 py-2 rounded-lg transition-colors flex items-center gap-2 ${
-              filterRole === 'both'
-                ? 'bg-purple-600 text-white'
-                : 'bg-purple-50 text-purple-700 hover:bg-purple-100'
-            }`}
-          >
-            <SafeIcon icon={FiCheck} className="w-4 h-4" />
-            Entrambi i ruoli
-          </button>
-        </div>
-      </div>
-
       {/* Clients List */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -379,30 +295,29 @@ const ClientManagement = () => {
         className="bg-white rounded-xl border border-nordic-200"
       >
         <div className="p-6 border-b border-nordic-200">
-          <h2 className="text-lg font-semibold text-nordic-800">Lista Soggetti</h2>
+          <h2 className="text-lg font-semibold text-nordic-800">Lista Clienti</h2>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-nordic-50">
               <tr>
-                <th className="px-6 py-4 text-left text-sm font-medium text-nordic-700">Soggetto</th>
+                <th className="px-6 py-4 text-left text-sm font-medium text-nordic-700">Cliente</th>
                 <th className="px-6 py-4 text-left text-sm font-medium text-nordic-700">Partita IVA</th>
                 <th className="px-6 py-4 text-left text-sm font-medium text-nordic-700">Città</th>
-                <th className="px-6 py-4 text-left text-sm font-medium text-nordic-700">Ruolo</th>
                 <th className="px-6 py-4 text-left text-sm font-medium text-nordic-700">Contatti</th>
                 <th className="px-6 py-4 text-left text-sm font-medium text-nordic-700">Gestione</th>
                 <th className="px-6 py-4 text-left text-sm font-medium text-nordic-700">Azioni</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-nordic-200">
-              {filteredClients.length === 0 ? (
+              {clients.length === 0 ? (
                 <tr>
-                  <td colSpan="7" className="px-6 py-8 text-center text-nordic-500">
-                    Nessun soggetto presente
+                  <td colSpan="6" className="px-6 py-8 text-center text-nordic-500">
+                    Nessun cliente presente
                   </td>
                 </tr>
               ) : (
-                filteredClients.map((client) => (
+                clients.map((client) => (
                   <tr key={client.id} className="hover:bg-nordic-50">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
@@ -423,20 +338,6 @@ const ClientManagement = () => {
                     </td>
                     <td className="px-6 py-4 text-nordic-800">{client.vatNumber}</td>
                     <td className="px-6 py-4 text-nordic-800">{client.city}</td>
-                    <td className="px-6 py-4">
-                      <div className="flex flex-wrap gap-1">
-                        {client.is_buyer && (
-                          <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
-                            Compratore
-                          </span>
-                        )}
-                        {client.is_seller && (
-                          <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
-                            Venditore
-                          </span>
-                        )}
-                      </div>
-                    </td>
                     <td className="px-6 py-4">
                       <div className="space-y-1">
                         {client.phone && (

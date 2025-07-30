@@ -3,14 +3,14 @@ import { motion } from 'framer-motion';
 import SafeIcon from '@/common/SafeIcon';
 import * as FiIcons from 'react-icons/fi';
 
-const { 
-  FiX, FiEdit, FiDownload, FiUser, FiTruck, FiPackage, FiCalendar, 
-  FiDollarSign, FiFileText, FiWeight, FiTrello 
-} = FiIcons;
+const { FiX, FiEdit, FiDownload, FiUser, FiTruck, FiPackage, FiCalendar, FiDollarSign, FiFileText } = FiIcons;
 
-const OrderPreviewModal = ({ order, buyer, seller, onClose, onEdit, onDownload }) => {
+const OrderPreviewModal = ({ order, client, vendor, onClose, onEdit, onDownload }) => {
   const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format(amount);
+    return new Intl.NumberFormat('it-IT', {
+      style: 'currency',
+      currency: 'EUR'
+    }).format(amount);
   };
 
   const calculateFinalPrice = () => {
@@ -88,54 +88,54 @@ const OrderPreviewModal = ({ order, buyer, seller, onClose, onEdit, onDownload }
         <div className="p-6 space-y-6">
           {/* Parties Section */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Buyer */}
+            {/* Client */}
             <div className="bg-sage-50 rounded-lg p-4">
               <h3 className="text-lg font-semibold text-sage-800 mb-3 flex items-center gap-2">
                 <SafeIcon icon={FiUser} className="w-5 h-5" />
                 Compratore
               </h3>
-              {buyer ? (
+              {client ? (
                 <div className="space-y-2">
-                  <p className="font-medium text-nordic-800">{buyer.name}</p>
-                  <p className="text-sm text-nordic-600">{buyer.address}</p>
-                  <p className="text-sm text-nordic-600">{buyer.city}</p>
-                  <p className="text-sm text-nordic-600">P.IVA: {buyer.vatNumber}</p>
-                  {buyer.sdi && (
-                    <p className="text-sm text-nordic-600">SDI: {buyer.sdi}</p>
+                  <p className="font-medium text-nordic-800">{client.name}</p>
+                  <p className="text-sm text-nordic-600">{client.address}</p>
+                  <p className="text-sm text-nordic-600">{client.city}</p>
+                  <p className="text-sm text-nordic-600">P.IVA: {client.vatNumber}</p>
+                  {client.sdi && (
+                    <p className="text-sm text-nordic-600">SDI: {client.sdi}</p>
                   )}
-                  {buyer.phone && (
-                    <p className="text-sm text-nordic-600">Tel: {buyer.phone}</p>
+                  {client.phone && (
+                    <p className="text-sm text-nordic-600">Tel: {client.phone}</p>
                   )}
-                  {buyer.email && (
-                    <p className="text-sm text-nordic-600">Email: {buyer.email}</p>
+                  {client.email && (
+                    <p className="text-sm text-nordic-600">Email: {client.email}</p>
                   )}
                 </div>
               ) : (
-                <p className="text-nordic-500">Compratore non trovato</p>
+                <p className="text-nordic-500">Cliente non trovato</p>
               )}
             </div>
 
-            {/* Seller */}
+            {/* Vendor */}
             <div className="bg-blue-50 rounded-lg p-4">
               <h3 className="text-lg font-semibold text-blue-800 mb-3 flex items-center gap-2">
                 <SafeIcon icon={FiTruck} className="w-5 h-5" />
                 Venditore
               </h3>
-              {seller ? (
+              {vendor ? (
                 <div className="space-y-2">
-                  <p className="font-medium text-nordic-800">{seller.name}</p>
-                  <p className="text-sm text-nordic-600">{seller.address}</p>
-                  <p className="text-sm text-nordic-600">{seller.city}</p>
-                  <p className="text-sm text-nordic-600">P.IVA: {seller.vatNumber}</p>
-                  {seller.phone && (
-                    <p className="text-sm text-nordic-600">Tel: {seller.phone}</p>
+                  <p className="font-medium text-nordic-800">{vendor.name}</p>
+                  <p className="text-sm text-nordic-600">{vendor.address}</p>
+                  <p className="text-sm text-nordic-600">{vendor.city}</p>
+                  <p className="text-sm text-nordic-600">P.IVA: {vendor.vatNumber}</p>
+                  {vendor.phone && (
+                    <p className="text-sm text-nordic-600">Tel: {vendor.phone}</p>
                   )}
-                  {seller.email && (
-                    <p className="text-sm text-nordic-600">Email: {seller.email}</p>
+                  {vendor.email && (
+                    <p className="text-sm text-nordic-600">Email: {vendor.email}</p>
                   )}
                 </div>
               ) : (
-                <p className="text-nordic-500">Venditore non trovato</p>
+                <p className="text-nordic-500">Fornitore non trovato</p>
               )}
             </div>
           </div>
@@ -175,26 +175,6 @@ const OrderPreviewModal = ({ order, buyer, seller, onClose, onEdit, onDownload }
                   <p className="text-nordic-800 mt-1">{order.quantity}</p>
                 </div>
               )}
-              {order.actual_weight !== undefined && (
-                <div>
-                  <label className="text-sm font-medium text-nordic-700">
-                    <SafeIcon icon={FiWeight} className="inline w-4 h-4 mr-1" />
-                    Peso Effettivo
-                  </label>
-                  <p className="text-nordic-800 mt-1">
-                    {order.actual_weight ? `${order.actual_weight} kg` : 'Non specificato'}
-                  </p>
-                </div>
-              )}
-              {order.delivery_details && (
-                <div>
-                  <label className="text-sm font-medium text-nordic-700">
-                    <SafeIcon icon={FiTrello} className="inline w-4 h-4 mr-1" />
-                    Dettagli Consegna
-                  </label>
-                  <p className="text-nordic-800 mt-1">{order.delivery_details}</p>
-                </div>
-              )}
             </div>
           </div>
 
@@ -225,14 +205,6 @@ const OrderPreviewModal = ({ order, buyer, seller, onClose, onEdit, onDownload }
                   {formatCurrency(calculateFinalPrice())}/KG
                 </p>
               </div>
-              {order.invoice_amount !== undefined && (
-                <div>
-                  <label className="text-sm font-medium text-nordic-700">Importo Fattura</label>
-                  <p className="text-lg font-semibold text-purple-600 mt-1">
-                    {formatCurrency(order.invoice_amount || 0)}
-                  </p>
-                </div>
-              )}
               {order.deliveryDate && (
                 <div>
                   <label className="text-sm font-medium text-nordic-700">Data Consegna</label>

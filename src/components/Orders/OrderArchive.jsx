@@ -15,7 +15,7 @@ import OrderEditModal from './OrderEditModal';
 const { FiSearch, FiFilter, FiEye, FiDownload, FiEdit, FiMail, FiFileText, FiPaperclip, FiCamera, FiPlus } = FiIcons;
 
 const OrderArchive = () => {
-  const { orders, clients, updateOrder } = useOrderStore();
+  const { orders, clients, vendors, updateOrder } = useOrderStore();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [isExporting, setIsExporting] = useState(false);
@@ -25,20 +25,20 @@ const OrderArchive = () => {
   const [showEditModal, setShowEditModal] = useState(null);
 
   const filteredOrders = orders.filter(order => {
-    const matchesSearch = order.product?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          order.orderNumber?.toString().includes(searchTerm);
+    const matchesSearch = order.product?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         order.orderNumber?.toString().includes(searchTerm);
     const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
   const getClientName = (clientId) => {
     const client = clients.find(c => c.id === clientId);
-    return client ? client.name : 'Compratore non trovato';
+    return client ? client.name : 'Cliente non trovato';
   };
 
-  const getSellerName = (sellerId) => {
-    const seller = clients.find(c => c.id === sellerId);
-    return seller ? seller.name : 'Venditore non trovato';
+  const getVendorName = (vendorId) => {
+    const vendor = vendors.find(v => v.id === vendorId);
+    return vendor ? vendor.name : 'Fornitore non trovato';
   };
 
   const getStatusBadge = (status) => {
@@ -47,8 +47,8 @@ const OrderArchive = () => {
       completed: { label: 'Completato', class: 'bg-green-100 text-green-800' },
       invoiced: { label: 'Fatturato', class: 'bg-blue-100 text-blue-800' }
     };
+    
     const config = statusConfig[status] || statusConfig.pending;
-
     return (
       <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${config.class}`}>
         {config.label}
@@ -59,7 +59,7 @@ const OrderArchive = () => {
   const handleExportExcel = async () => {
     setIsExporting(true);
     try {
-      exportOrdersToExcel(filteredOrders, clients, clients, 'Archivio_Ordini');
+      exportOrdersToExcel(filteredOrders, clients, vendors, 'Archivio_Ordini');
       toast.success('Export Excel completato!');
     } catch (error) {
       toast.error('Errore durante l\'export');
@@ -72,29 +72,19 @@ const OrderArchive = () => {
     try {
       updateOrder(orderId, { status: newStatus });
       const order = orders.find(o => o.id === orderId);
-      const buyer = clients.find(c => c.id === order.buyerId);
-      const seller = clients.find(c => c.id === order.sellerId);
+      const client = clients.find(c => c.id === order.clientId);
+      const vendor = vendors.find(v => v.id === order.vendorId);
 
-      // Send email notifications to both buyer and seller
-      if (buyer && buyer.email) {
-        const result = await emailService.sendOrderUpdate(order, buyer, 'buyer', newStatus);
+      // Send email notification
+      if (client && client.email) {
+        const result = await emailService.sendOrderUpdate(order, client, vendor, newStatus);
         if (result.success) {
-          toast.success(`Stato aggiornato e notifica inviata al compratore: ${buyer.email}`);
+          toast.success(`Stato aggiornato e notifica inviata a ${client.email}`);
         } else {
-          toast.error(`Errore nell'invio email al compratore: ${result.message}`);
+          toast.success('Stato aggiornato');
+          toast.error(result.message);
         }
-      }
-
-      if (seller && seller.email) {
-        const result = await emailService.sendOrderUpdate(order, seller, 'seller', newStatus);
-        if (result.success) {
-          toast.success(`Stato aggiornato e notifica inviata al venditore: ${seller.email}`);
-        } else {
-          toast.error(`Errore nell'invio email al venditore: ${result.message}`);
-        }
-      }
-
-      if (!buyer?.email && !seller?.email) {
+      } else {
         toast.success('Stato aggiornato');
       }
     } catch (error) {
@@ -105,70 +95,50 @@ const OrderArchive = () => {
   const sendOrderEmail = async (orderId) => {
     try {
       const order = orders.find(o => o.id === orderId);
-      const buyer = clients.find(c => c.id === order.buyerId);
-      const seller = clients.find(c => c.id === order.sellerId);
-      
-      let emailsSent = 0;
-      let emailErrors = 0;
+      const client = clients.find(c => c.id === order.clientId);
+      const vendor = vendors.find(v => v.id === order.vendorId);
 
-      if (buyer?.email) {
-        const buyerResult = await emailService.sendOrderConfirmation(order, buyer, 'buyer');
-        if (buyerResult.success) {
-          emailsSent++;
-        } else {
-          emailErrors++;
-        }
+      if (!client?.email) {
+        toast.error('Email cliente non disponibile');
+        return;
       }
 
-      if (seller?.email) {
-        const sellerResult = await emailService.sendOrderConfirmation(order, seller, 'seller');
-        if (sellerResult.success) {
-          emailsSent++;
-        } else {
-          emailErrors++;
-        }
-      }
-
-      if (emailsSent > 0) {
-        toast.success(`${emailsSent} email inviate con successo`);
-      }
-      
-      if (emailErrors > 0) {
-        toast.error(`${emailErrors} email non inviate`);
-      }
-      
-      if (!buyer?.email && !seller?.email) {
-        toast.error('Nessun indirizzo email disponibile');
+      const result = await emailService.sendOrderConfirmation(order, client, vendor);
+      if (result.success) {
+        toast.success(`Email inviata a ${client.email}`);
+      } else {
+        toast.error(result.message);
       }
     } catch (error) {
       toast.error('Errore durante l\'invio email');
     }
   };
 
-  // Handle order preview
+  // NEW: Handle order preview
   const handlePreviewOrder = (order) => {
     setShowPreviewModal(order);
   };
 
-  // Handle order edit
+  // NEW: Handle order edit
   const handleEditOrder = (order) => {
     setShowEditModal(order);
   };
 
-  // Handle order download (PDF)
+  // NEW: Handle order download (PDF)
   const handleDownloadOrder = (order) => {
     try {
-      const buyer = clients.find(c => c.id === order.buyerId);
-      const seller = clients.find(c => c.id === order.sellerId);
-      
-      if (!buyer || !seller) {
-        toast.error('Dati compratore o venditore mancanti per generare il PDF');
+      const client = clients.find(c => c.id === order.clientId);
+      const vendor = vendors.find(v => v.id === order.vendorId);
+
+      if (!client || !vendor) {
+        toast.error('Dati cliente o fornitore mancanti per generare il PDF');
         return;
       }
 
-      const pdf = generateOrderContract(order, buyer, seller);
+      const pdf = generateOrderContract(order, client, vendor);
       const fileName = `Contratto_${order.orderNumber}_${new Date().toISOString().split('T')[0]}.pdf`;
       downloadPDF(pdf, fileName);
+      
       toast.success('PDF scaricato con successo!');
     } catch (error) {
       console.error('Error generating PDF:', error);
@@ -263,10 +233,10 @@ const OrderArchive = () => {
           attachments={showPhotoUploader.attachments || { images: [], notes: [] }}
           onClose={() => setShowPhotoUploader(null)}
           onUpdate={(attachments) => handlePhotoUpdate(showPhotoUploader.id, attachments)}
-          orderInfo={{ 
+          orderInfo={{
             orderNumber: showPhotoUploader.orderNumber,
-            product: showPhotoUploader.product, 
-            isNew: false 
+            product: showPhotoUploader.product,
+            isNew: false
           }}
         />
       )}
@@ -275,8 +245,8 @@ const OrderArchive = () => {
       {showPreviewModal && (
         <OrderPreviewModal
           order={showPreviewModal}
-          buyer={clients.find(c => c.id === showPreviewModal.buyerId)}
-          seller={clients.find(c => c.id === showPreviewModal.sellerId)}
+          client={clients.find(c => c.id === showPreviewModal.clientId)}
+          vendor={vendors.find(v => v.id === showPreviewModal.vendorId)}
           onClose={() => setShowPreviewModal(null)}
           onEdit={() => {
             setShowPreviewModal(null);
@@ -291,6 +261,7 @@ const OrderArchive = () => {
         <OrderEditModal
           order={showEditModal}
           clients={clients}
+          vendors={vendors}
           onClose={() => setShowEditModal(null)}
           onUpdate={handleOrderUpdate}
         />
@@ -309,10 +280,9 @@ const OrderArchive = () => {
               <tr>
                 <th className="px-6 py-4 text-left text-sm font-medium text-nordic-700">Ordine</th>
                 <th className="px-6 py-4 text-left text-sm font-medium text-nordic-700">Prodotto</th>
-                <th className="px-6 py-4 text-left text-sm font-medium text-nordic-700">Compratore</th>
-                <th className="px-6 py-4 text-left text-sm font-medium text-nordic-700">Venditore</th>
+                <th className="px-6 py-4 text-left text-sm font-medium text-nordic-700">Cliente</th>
+                <th className="px-6 py-4 text-left text-sm font-medium text-nordic-700">Fornitore</th>
                 <th className="px-6 py-4 text-left text-sm font-medium text-nordic-700">Prezzo</th>
-                <th className="px-6 py-4 text-left text-sm font-medium text-nordic-700">Peso Eff.</th>
                 <th className="px-6 py-4 text-left text-sm font-medium text-nordic-700">Stato</th>
                 <th className="px-6 py-4 text-left text-sm font-medium text-nordic-700">Foto</th>
                 <th className="px-6 py-4 text-left text-sm font-medium text-nordic-700">Data</th>
@@ -322,7 +292,7 @@ const OrderArchive = () => {
             <tbody className="divide-y divide-nordic-200">
               {filteredOrders.length === 0 ? (
                 <tr>
-                  <td colSpan="10" className="px-6 py-8 text-center text-nordic-500">
+                  <td colSpan="9" className="px-6 py-8 text-center text-nordic-500">
                     Nessun ordine trovato
                   </td>
                 </tr>
@@ -337,21 +307,16 @@ const OrderArchive = () => {
                       <div className="text-sm text-nordic-500">{order.quantity}</div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="text-nordic-800">{getClientName(order.buyerId)}</div>
+                      <div className="text-nordic-800">{getClientName(order.clientId)}</div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="text-nordic-800">{getSellerName(order.sellerId)}</div>
+                      <div className="text-nordic-800">{getVendorName(order.vendorId)}</div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="text-nordic-800">€{order.price}</div>
                       {order.discount && (
                         <div className="text-sm text-nordic-500">Sconto {order.discount}%</div>
                       )}
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="text-nordic-800">
-                        {order.actual_weight ? `${order.actual_weight} kg` : '-'}
-                      </div>
                     </td>
                     <td className="px-6 py-4">
                       <select
@@ -374,7 +339,7 @@ const OrderArchive = () => {
                         >
                           <SafeIcon icon={FiCamera} className="w-4 h-4" />
                         </button>
-                        
+
                         {/* Attachment Manager */}
                         <button
                           onClick={() => setShowImageManager(order)}
@@ -405,7 +370,7 @@ const OrderArchive = () => {
                           <SafeIcon icon={FiMail} className="w-4 h-4" />
                         </button>
                         
-                        {/* Preview Button */}
+                        {/* FIXED: Preview Button */}
                         <button
                           onClick={() => handlePreviewOrder(order)}
                           className="p-2 text-nordic-600 hover:bg-nordic-100 rounded-lg transition-colors"
@@ -414,7 +379,7 @@ const OrderArchive = () => {
                           <SafeIcon icon={FiEye} className="w-4 h-4" />
                         </button>
                         
-                        {/* Edit Button */}
+                        {/* FIXED: Edit Button */}
                         <button
                           onClick={() => handleEditOrder(order)}
                           className="p-2 text-nordic-600 hover:bg-nordic-100 rounded-lg transition-colors"
@@ -423,7 +388,7 @@ const OrderArchive = () => {
                           <SafeIcon icon={FiEdit} className="w-4 h-4" />
                         </button>
                         
-                        {/* Download Button */}
+                        {/* FIXED: Download Button */}
                         <button
                           onClick={() => handleDownloadOrder(order)}
                           className="p-2 text-nordic-600 hover:bg-nordic-100 rounded-lg transition-colors"

@@ -1,7 +1,7 @@
-import js from '@eslint/js';
-import globals from 'globals';
-import reactHooks from 'eslint-plugin-react-hooks';
-import reactRefresh from 'eslint-plugin-react-refresh';
+import js from '@eslint/js'
+import globals from 'globals'
+import reactHooks from 'eslint-plugin-react-hooks'
+import reactRefresh from 'eslint-plugin-react-refresh'
 
 export default [
   { ignores: ['dist', 'public/sw.js'] }, // Ignore service worker
@@ -14,14 +14,15 @@ export default [
         ...globals.browser,
         ...globals.node,
         React: true,
-        JSX: true
+        JSX: true,
+        crypto: 'readonly' // Add crypto global
       },
       parserOptions: {
         ecmaFeatures: {
-          jsx: true
+          jsx: true,
         },
-        sourceType: 'module'
-      }
+        sourceType: 'module',
+      },
     },
     plugins: {
       'react-hooks': reactHooks,
@@ -33,8 +34,8 @@ export default [
       'react-hooks/exhaustive-deps': 'off',
       'react-refresh/only-export-components': 'off',
       'no-unused-vars': 'off',
-      'no-case-declarations': 'off'
-    }
+      'no-case-declarations': 'off',
+    },
   },
   // Separate config for service worker
   {
@@ -45,11 +46,11 @@ export default [
         self: 'readonly',
         caches: 'readonly',
         clients: 'readonly',
-        fetch: 'readonly'
-      }
+        fetch: 'readonly',
+      },
     },
     rules: {
-      'no-undef': 'error'
-    }
-  }
-];
+      'no-undef': 'error',
+    },
+  },
+]

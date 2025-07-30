@@ -1,20 +1,23 @@
-import React, { useState } from 'react';
-import { motion } from 'framer-motion';
-import { useForm } from 'react-hook-form';
-import toast from 'react-hot-toast';
-import SafeIcon from '@/common/SafeIcon';
-import * as FiIcons from 'react-icons/fi';
-import useAuthStore from '@/store/authStore';
-import ApiKeyManager from './ApiKeyManager';
-import CompanySettings from './CompanySettings';
+import React, { useState } from 'react'
+import { motion } from 'framer-motion'
+import { useForm } from 'react-hook-form'
+import toast from 'react-hot-toast'
+import SafeIcon from '@/common/SafeIcon'
+import * as FiIcons from 'react-icons/fi'
+import useAuthStore from '@/store/authStore'
+import ApiKeyManager from './ApiKeyManager'
+import CompanySettings from './CompanySettings'
+import { testSupabaseConnection } from '@/lib/supabase'
 
-const { FiSettings, FiDatabase, FiMail, FiSmartphone, FiShield, FiSave, FiDownload, FiUpload, FiKey, FiBuilding } = FiIcons;
+const { FiSettings, FiDatabase, FiMail, FiSmartphone, FiShield, FiSave, FiDownload, FiUpload, FiKey, FiBuilding, FiCheck, FiX, FiRefreshCw } = FiIcons
 
 const SystemSettings = () => {
-  const { user } = useAuthStore();
-  const [activeTab, setActiveTab] = useState('company');
-  const [isLoading, setIsLoading] = useState(false);
-  const { register, handleSubmit, formState: { errors } } = useForm();
+  const { user } = useAuthStore()
+  const [activeTab, setActiveTab] = useState('company')
+  const [isLoading, setIsLoading] = useState(false)
+  const [supabaseStatus, setSupabaseStatus] = useState(null)
+  const [testingConnection, setTestingConnection] = useState(false)
+  const { register, handleSubmit, formState: { errors } } = useForm()
 
   const tabs = [
     { id: 'company', name: 'Azienda', icon: FiBuilding },
@@ -24,43 +27,63 @@ const SystemSettings = () => {
     { id: 'mobile', name: 'App Mobile', icon: FiSmartphone },
     { id: 'api-keys', name: 'API Keys', icon: FiKey },
     { id: 'security', name: 'Sicurezza', icon: FiShield }
-  ];
+  ]
 
   const onSubmit = async (data) => {
-    setIsLoading(true);
+    setIsLoading(true)
     try {
       // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      toast.success('Impostazioni salvate con successo!');
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      toast.success('Impostazioni salvate con successo!')
     } catch (error) {
-      toast.error('Errore nel salvataggio delle impostazioni');
+      toast.error('Errore nel salvataggio delle impostazioni')
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
+  }
 
   const exportData = async () => {
-    setIsLoading(true);
+    setIsLoading(true)
     try {
       // Simulate data export
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      toast.success('Dati esportati con successo!');
+      await new Promise(resolve => setTimeout(resolve, 2000))
+      toast.success('Dati esportati con successo!')
     } catch (error) {
-      toast.error('Errore nell\'esportazione dei dati');
+      toast.error('Errore nell\'esportazione dei dati')
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
+  }
+
+  const testConnection = async () => {
+    setTestingConnection(true)
+    try {
+      const result = await testSupabaseConnection()
+      setSupabaseStatus(result)
+      
+      if (result.success) {
+        toast.success('Connessione Supabase attiva!')
+      } else {
+        toast.error(`Errore connessione: ${result.error}`)
+      }
+    } catch (error) {
+      setSupabaseStatus({ success: false, error: error.message })
+      toast.error('Errore nel test di connessione')
+    } finally {
+      setTestingConnection(false)
+    }
+  }
 
   const renderTabContent = () => {
     switch (activeTab) {
       case 'company':
-        return <CompanySettings />;
-        
+        return <CompanySettings />
+
       case 'general':
         return (
           <div className="space-y-6">
             <h3 className="text-lg font-semibold text-nordic-800">Impostazioni Generali</h3>
+            
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-nordic-700 mb-2">
@@ -72,6 +95,7 @@ const SystemSettings = () => {
                   className="w-full px-4 py-3 border border-nordic-200 rounded-lg focus:ring-2 focus:ring-sage-500 focus:border-transparent"
                 />
               </div>
+
               <div>
                 <label className="block text-sm font-medium text-nordic-700 mb-2">
                   Fuso Orario
@@ -86,6 +110,7 @@ const SystemSettings = () => {
                   <option value="America/New_York">America/New York (EST)</option>
                 </select>
               </div>
+
               <div>
                 <label className="block text-sm font-medium text-nordic-700 mb-2">
                   Valuta Predefinita
@@ -100,6 +125,7 @@ const SystemSettings = () => {
                   <option value="GBP">Sterlina (£)</option>
                 </select>
               </div>
+
               <div>
                 <label className="block text-sm font-medium text-nordic-700 mb-2">
                   Lingua
@@ -115,6 +141,7 @@ const SystemSettings = () => {
                 </select>
               </div>
             </div>
+
             <div>
               <label className="flex items-center gap-2">
                 <input
@@ -129,21 +156,60 @@ const SystemSettings = () => {
               </label>
             </div>
           </div>
-        );
+        )
 
       case 'database':
         return (
           <div className="space-y-6">
             <h3 className="text-lg font-semibold text-nordic-800">Configurazione Database</h3>
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <SafeIcon icon={FiDatabase} className="w-5 h-5 text-blue-600" />
-                <span className="font-medium text-blue-800">Stato Connessione Supabase</span>
+            
+            {/* Supabase Status */}
+            <div className="bg-white border border-nordic-200 rounded-lg p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <SafeIcon icon={FiDatabase} className="w-5 h-5 text-blue-600" />
+                  <span className="font-medium text-nordic-800">Stato Connessione Supabase</span>
+                </div>
+                <button
+                  onClick={testConnection}
+                  disabled={testingConnection}
+                  className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+                >
+                  <SafeIcon 
+                    icon={testingConnection ? FiRefreshCw : FiCheck} 
+                    className={`w-4 h-4 ${testingConnection ? 'animate-spin' : ''}`} 
+                  />
+                  {testingConnection ? 'Test in corso...' : 'Test Connessione'}
+                </button>
               </div>
-              <p className="text-blue-700 text-sm">
-                {user ? '✅ Connesso e sincronizzato' : '⚠️ Modalità locale - Configurare Supabase per la produzione'}
-              </p>
+
+              {supabaseStatus ? (
+                <div className={`p-4 rounded-lg ${supabaseStatus.success ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
+                  <div className="flex items-center gap-2">
+                    <SafeIcon 
+                      icon={supabaseStatus.success ? FiCheck : FiX} 
+                      className={`w-5 h-5 ${supabaseStatus.success ? 'text-green-600' : 'text-red-600'}`} 
+                    />
+                    <span className={`font-medium ${supabaseStatus.success ? 'text-green-800' : 'text-red-800'}`}>
+                      {supabaseStatus.success ? 'Connessione attiva' : 'Errore di connessione'}
+                    </span>
+                  </div>
+                  {!supabaseStatus.success && (
+                    <p className="text-red-600 text-sm mt-2">
+                      {supabaseStatus.error}
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <p className="text-blue-700 text-sm">
+                    {user ? '🔄 Modalità ibrida - Dati locali con sincronizzazione Supabase' : '💾 Modalità locale - I dati sono salvati nel browser'}
+                  </p>
+                </div>
+              )}
             </div>
+
+            {/* Database Configuration */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-nordic-700 mb-2">
@@ -152,51 +218,77 @@ const SystemSettings = () => {
                 <input
                   {...register('supabaseUrl')}
                   placeholder="https://your-project.supabase.co"
+                  defaultValue="https://acilsyljzfbyimtpsfos.supabase.co"
                   className="w-full px-4 py-3 border border-nordic-200 rounded-lg focus:ring-2 focus:ring-sage-500 focus:border-transparent"
+                  readOnly
                 />
+                <p className="text-xs text-nordic-500 mt-1">URL del progetto Supabase configurato</p>
               </div>
+
               <div>
                 <label className="block text-sm font-medium text-nordic-700 mb-2">
-                  Chiave Anonima
+                  Stato Token
                 </label>
-                <input
-                  {...register('supabaseKey')}
-                  type="password"
-                  placeholder="your-anon-key"
-                  className="w-full px-4 py-3 border border-nordic-200 rounded-lg focus:ring-2 focus:ring-sage-500 focus:border-transparent"
-                />
+                <div className="flex items-center gap-2 px-4 py-3 border border-nordic-200 rounded-lg bg-nordic-50">
+                  <SafeIcon icon={FiKey} className="w-4 h-4 text-nordic-500" />
+                  <span className="text-sm text-nordic-600">Token configurato</span>
+                </div>
+                <p className="text-xs text-nordic-500 mt-1">Chiave anonima per l'accesso pubblico</p>
               </div>
             </div>
-            <div className="flex gap-4">
-              <button
-                onClick={exportData}
-                disabled={isLoading}
-                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
-              >
-                {isLoading ? (
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                ) : (
-                  <SafeIcon icon={FiDownload} className="w-4 h-4" />
-                )}
-                Esporta Dati
-              </button>
-              <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-                <SafeIcon icon={FiUpload} className="w-4 h-4" />
-                Importa Dati
-              </button>
+
+            {/* Data Management */}
+            <div className="bg-nordic-50 rounded-lg p-4">
+              <h4 className="font-medium text-nordic-800 mb-3">Gestione Dati</h4>
+              <div className="flex gap-4">
+                <button
+                  onClick={exportData}
+                  disabled={isLoading}
+                  className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
+                >
+                  {isLoading ? (
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <SafeIcon icon={FiDownload} className="w-4 h-4" />
+                  )}
+                  Esporta Dati
+                </button>
+                <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                  <SafeIcon icon={FiUpload} className="w-4 h-4" />
+                  Importa Dati
+                </button>
+              </div>
+            </div>
+
+            {/* Important Notice */}
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+              <div className="flex items-start gap-3">
+                <SafeIcon icon={FiDatabase} className="w-5 h-5 text-yellow-600 mt-0.5" />
+                <div>
+                  <h4 className="font-medium text-yellow-800">Informazioni Database</h4>
+                  <div className="text-sm text-yellow-700 mt-1 space-y-1">
+                    <p>• Il sistema funziona sia in modalità locale che con Supabase</p>
+                    <p>• I dati vengono sincronizzati automaticamente quando Supabase è disponibile</p>
+                    <p>• In caso di problemi di connessione, il sistema continua a funzionare localmente</p>
+                    <p>• Per aggiornare le credenziali Supabase, modifica il file di configurazione</p>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
-        );
+        )
 
       case 'email':
         return (
           <div className="space-y-6">
             <h3 className="text-lg font-semibold text-nordic-800">Configurazione Email</h3>
+            
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
               <p className="text-yellow-800 text-sm">
-                ⚠️ Le configurazioni email sono ora gestite nella sezione API Keys
+                ⚠️ Le configurazioni email sono gestite nella sezione API Keys
               </p>
             </div>
+
             <div className="space-y-3">
               <label className="flex items-center gap-2">
                 <input
@@ -209,6 +301,7 @@ const SystemSettings = () => {
                   Invio automatico email di conferma ordine
                 </span>
               </label>
+
               <label className="flex items-center gap-2">
                 <input
                   {...register('emailStatusUpdates')}
@@ -222,12 +315,13 @@ const SystemSettings = () => {
               </label>
             </div>
           </div>
-        );
+        )
 
       case 'mobile':
         return (
           <div className="space-y-6">
             <h3 className="text-lg font-semibold text-nordic-800">Configurazione App Mobile</h3>
+            
             <div className="bg-green-50 border border-green-200 rounded-lg p-4">
               <div className="flex items-center gap-2 mb-2">
                 <SafeIcon icon={FiSmartphone} className="w-5 h-5 text-green-600" />
@@ -237,6 +331,7 @@ const SystemSettings = () => {
                 ✅ API mobile configurate e pronte per l'integrazione con React Native
               </p>
             </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-nordic-700 mb-2">
@@ -249,6 +344,7 @@ const SystemSettings = () => {
                   className="w-full px-4 py-3 border border-nordic-200 rounded-lg bg-nordic-50 text-nordic-600"
                 />
               </div>
+
               <div>
                 <label className="block text-sm font-medium text-nordic-700 mb-2">
                   Versione API
@@ -261,6 +357,7 @@ const SystemSettings = () => {
                 />
               </div>
             </div>
+
             <div className="space-y-3">
               <label className="flex items-center gap-2">
                 <input
@@ -273,6 +370,7 @@ const SystemSettings = () => {
                   Pubblica automaticamente ordini selezionati su app mobile
                 </span>
               </label>
+
               <label className="flex items-center gap-2">
                 <input
                   {...register('mobileInquiries')}
@@ -285,6 +383,7 @@ const SystemSettings = () => {
                 </span>
               </label>
             </div>
+
             <div className="bg-nordic-50 rounded-lg p-4">
               <h4 className="font-medium text-nordic-800 mb-2">Endpoints API Disponibili:</h4>
               <ul className="text-sm text-nordic-600 space-y-1">
@@ -296,15 +395,16 @@ const SystemSettings = () => {
               </ul>
             </div>
           </div>
-        );
+        )
 
       case 'api-keys':
-        return <ApiKeyManager />;
+        return <ApiKeyManager />
 
       case 'security':
         return (
           <div className="space-y-6">
             <h3 className="text-lg font-semibold text-nordic-800">Impostazioni Sicurezza</h3>
+            
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-nordic-700 mb-2">
@@ -319,6 +419,7 @@ const SystemSettings = () => {
                   className="w-full px-4 py-3 border border-nordic-200 rounded-lg focus:ring-2 focus:ring-sage-500 focus:border-transparent"
                 />
               </div>
+
               <div>
                 <label className="block text-sm font-medium text-nordic-700 mb-2">
                   Max Tentativi Login
@@ -333,6 +434,7 @@ const SystemSettings = () => {
                 />
               </div>
             </div>
+
             <div className="space-y-3">
               <label className="flex items-center gap-2">
                 <input
@@ -345,6 +447,7 @@ const SystemSettings = () => {
                   Richiedi password complesse
                 </span>
               </label>
+
               <label className="flex items-center gap-2">
                 <input
                   {...register('enableTwoFactor')}
@@ -355,6 +458,7 @@ const SystemSettings = () => {
                   Abilita autenticazione a due fattori (2FA)
                 </span>
               </label>
+
               <label className="flex items-center gap-2">
                 <input
                   {...register('logSecurityEvents')}
@@ -367,6 +471,7 @@ const SystemSettings = () => {
                 </span>
               </label>
             </div>
+
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
               <div className="flex items-center gap-2 mb-2">
                 <SafeIcon icon={FiShield} className="w-5 h-5 text-yellow-600" />
@@ -377,12 +482,12 @@ const SystemSettings = () => {
               </p>
             </div>
           </div>
-        );
+        )
 
       default:
-        return null;
+        return null
     }
-  };
+  }
 
   return (
     <div className="space-y-6">
@@ -444,7 +549,7 @@ const SystemSettings = () => {
         </div>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default SystemSettings;
+export default SystemSettings

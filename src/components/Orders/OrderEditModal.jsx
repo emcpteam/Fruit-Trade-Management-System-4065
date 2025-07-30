@@ -6,28 +6,23 @@ import SafeIcon from '@/common/SafeIcon';
 import * as FiIcons from 'react-icons/fi';
 import SuggestionInput from '@/components/Common/SuggestionInput';
 
-const { 
-  FiX, FiSave, FiUser, FiTruck, FiPackage, FiWeight, FiDollarSign, FiTrello 
-} = FiIcons;
+const { FiX, FiSave, FiUser, FiTruck, FiPackage } = FiIcons;
 
-const OrderEditModal = ({ order, clients, onClose, onUpdate }) => {
+const OrderEditModal = ({ order, clients, vendors, onClose, onUpdate }) => {
   const [formData, setFormData] = useState({
     product: order.product || '',
     type: order.type || '',
     origin: order.origin || '',
     packaging: order.packaging || '',
-    quantity: order.quantity || '',
-    delivery_details: order.delivery_details || ''
+    quantity: order.quantity || ''
   });
-
+  
   const { register, handleSubmit, setValue, formState: { errors } } = useForm({
     defaultValues: {
-      buyerId: order.buyerId,
-      sellerId: order.sellerId,
+      clientId: order.clientId,
+      vendorId: order.vendorId,
       price: order.price,
       discount: order.discount || 0,
-      actual_weight: order.actual_weight || 0,
-      invoice_amount: order.invoice_amount || 0,
       deliveryDate: order.deliveryDate,
       paymentTerms: order.paymentTerms,
       publishToApp: order.publishToApp || false
@@ -42,14 +37,13 @@ const OrderEditModal = ({ order, clients, onClose, onUpdate }) => {
     try {
       // Merge form data with suggestion input data
       const mergedData = { ...data, ...formData };
+      
       const updatedOrder = {
         ...mergedData,
-        buyerId: parseInt(mergedData.buyerId),
-        sellerId: parseInt(mergedData.sellerId),
+        clientId: parseInt(mergedData.clientId),
+        vendorId: parseInt(mergedData.vendorId),
         price: parseFloat(mergedData.price),
         discount: parseFloat(mergedData.discount || 0),
-        actual_weight: parseFloat(mergedData.actual_weight || 0),
-        invoice_amount: parseFloat(mergedData.invoice_amount || 0),
         publishToApp: mergedData.publishToApp || false
       };
 
@@ -58,10 +52,6 @@ const OrderEditModal = ({ order, clients, onClose, onUpdate }) => {
       toast.error('Errore durante l\'aggiornamento dell\'ordine');
     }
   };
-
-  // Filter clients by role
-  const buyers = clients.filter(client => client.is_buyer);
-  const sellers = clients.filter(client => client.is_seller);
 
   return (
     <motion.div
@@ -99,42 +89,42 @@ const OrderEditModal = ({ order, clients, onClose, onUpdate }) => {
               <div>
                 <label className="block text-sm font-medium text-nordic-700 mb-2">
                   <SafeIcon icon={FiUser} className="inline w-4 h-4 mr-1" />
-                  Compratore *
+                  Cliente (Compratore) *
                 </label>
                 <select
-                  {...register('buyerId', { required: 'Compratore obbligatorio' })}
+                  {...register('clientId', { required: 'Cliente obbligatorio' })}
                   className="w-full px-4 py-3 border border-nordic-200 rounded-lg focus:ring-2 focus:ring-sage-500 focus:border-transparent"
                 >
-                  <option value="">Seleziona compratore...</option>
-                  {buyers.map(buyer => (
-                    <option key={buyer.id} value={buyer.id}>
-                      {buyer.name} - {buyer.city}
+                  <option value="">Seleziona cliente...</option>
+                  {clients.map(client => (
+                    <option key={client.id} value={client.id}>
+                      {client.name} - {client.city}
                     </option>
                   ))}
                 </select>
-                {errors.buyerId && (
-                  <p className="text-red-500 text-sm mt-1">{errors.buyerId.message}</p>
+                {errors.clientId && (
+                  <p className="text-red-500 text-sm mt-1">{errors.clientId.message}</p>
                 )}
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-nordic-700 mb-2">
                   <SafeIcon icon={FiTruck} className="inline w-4 h-4 mr-1" />
-                  Venditore *
+                  Fornitore (Venditore) *
                 </label>
                 <select
-                  {...register('sellerId', { required: 'Venditore obbligatorio' })}
+                  {...register('vendorId', { required: 'Fornitore obbligatorio' })}
                   className="w-full px-4 py-3 border border-nordic-200 rounded-lg focus:ring-2 focus:ring-sage-500 focus:border-transparent"
                 >
-                  <option value="">Seleziona venditore...</option>
-                  {sellers.map(seller => (
-                    <option key={seller.id} value={seller.id}>
-                      {seller.name} - {seller.city}
+                  <option value="">Seleziona fornitore...</option>
+                  {vendors.map(vendor => (
+                    <option key={vendor.id} value={vendor.id}>
+                      {vendor.name} - {vendor.city}
                     </option>
                   ))}
                 </select>
-                {errors.sellerId && (
-                  <p className="text-red-500 text-sm mt-1">{errors.sellerId.message}</p>
+                {errors.vendorId && (
+                  <p className="text-red-500 text-sm mt-1">{errors.vendorId.message}</p>
                 )}
               </div>
             </div>
@@ -145,6 +135,7 @@ const OrderEditModal = ({ order, clients, onClose, onUpdate }) => {
                 <SafeIcon icon={FiPackage} className="w-5 h-5" />
                 Dettagli Prodotto
               </h3>
+              
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-nordic-700 mb-2">
@@ -161,6 +152,7 @@ const OrderEditModal = ({ order, clients, onClose, onUpdate }) => {
                     <p className="text-red-500 text-sm mt-1">Prodotto obbligatorio</p>
                   )}
                 </div>
+
                 <div>
                   <label className="block text-sm font-medium text-nordic-700 mb-2">
                     Tipologia *
@@ -176,6 +168,7 @@ const OrderEditModal = ({ order, clients, onClose, onUpdate }) => {
                     <p className="text-red-500 text-sm mt-1">Tipologia obbligatoria</p>
                   )}
                 </div>
+
                 <div>
                   <label className="block text-sm font-medium text-nordic-700 mb-2">
                     Origine *
@@ -191,6 +184,7 @@ const OrderEditModal = ({ order, clients, onClose, onUpdate }) => {
                     <p className="text-red-500 text-sm mt-1">Origine obbligatoria</p>
                   )}
                 </div>
+
                 <div>
                   <label className="block text-sm font-medium text-nordic-700 mb-2">
                     Imballaggio *
@@ -206,6 +200,7 @@ const OrderEditModal = ({ order, clients, onClose, onUpdate }) => {
                     <p className="text-red-500 text-sm mt-1">Imballaggio obbligatorio</p>
                   )}
                 </div>
+
                 <div>
                   <label className="block text-sm font-medium text-nordic-700 mb-2">
                     Quantità *
@@ -221,6 +216,7 @@ const OrderEditModal = ({ order, clients, onClose, onUpdate }) => {
                     <p className="text-red-500 text-sm mt-1">Quantità obbligatoria</p>
                   )}
                 </div>
+
                 <div>
                   <label className="block text-sm font-medium text-nordic-700 mb-2">
                     Prezzo (€/KG) *
@@ -242,6 +238,7 @@ const OrderEditModal = ({ order, clients, onClose, onUpdate }) => {
                     <p className="text-red-500 text-sm mt-1">{errors.price.message}</p>
                   )}
                 </div>
+
                 <div>
                   <label className="block text-sm font-medium text-nordic-700 mb-2">
                     Sconto (%)
@@ -254,32 +251,7 @@ const OrderEditModal = ({ order, clients, onClose, onUpdate }) => {
                     placeholder="10"
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-nordic-700 mb-2">
-                    <SafeIcon icon={FiWeight} className="inline w-4 h-4 mr-1" />
-                    Peso Effettivo (KG)
-                  </label>
-                  <input
-                    {...register('actual_weight')}
-                    type="number"
-                    step="0.01"
-                    className="w-full px-4 py-3 border border-nordic-200 rounded-lg focus:ring-2 focus:ring-sage-500 focus:border-transparent"
-                    placeholder="0.00"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-nordic-700 mb-2">
-                    <SafeIcon icon={FiDollarSign} className="inline w-4 h-4 mr-1" />
-                    Importo Fattura (€)
-                  </label>
-                  <input
-                    {...register('invoice_amount')}
-                    type="number"
-                    step="0.01"
-                    className="w-full px-4 py-3 border border-nordic-200 rounded-lg focus:ring-2 focus:ring-sage-500 focus:border-transparent"
-                    placeholder="0.00"
-                  />
-                </div>
+
                 <div>
                   <label className="block text-sm font-medium text-nordic-700 mb-2">
                     Data Consegna *
@@ -293,19 +265,8 @@ const OrderEditModal = ({ order, clients, onClose, onUpdate }) => {
                     <p className="text-red-500 text-sm mt-1">{errors.deliveryDate.message}</p>
                   )}
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-nordic-700 mb-2">
-                    <SafeIcon icon={FiTrello} className="inline w-4 h-4 mr-1" />
-                    Dettagli Consegna
-                  </label>
-                  <SuggestionInput
-                    category="delivery_details"
-                    value={formData.delivery_details}
-                    onChange={(value) => handleFieldChange('delivery_details', value)}
-                    placeholder="es. Consegna presso il magazzino centrale"
-                  />
-                </div>
               </div>
+
               <div>
                 <label className="block text-sm font-medium text-nordic-700 mb-2">
                   Condizioni di Pagamento *
@@ -320,6 +281,7 @@ const OrderEditModal = ({ order, clients, onClose, onUpdate }) => {
                   <p className="text-red-500 text-sm mt-1">{errors.paymentTerms.message}</p>
                 )}
               </div>
+
               <div>
                 <label className="flex items-center gap-2">
                   <input

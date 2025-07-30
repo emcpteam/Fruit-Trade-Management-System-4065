@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { supabase } from '@/lib/supabase';
+import { supabase, isSupabaseAvailable } from '@/lib/supabase';
 
 const useAuthStore = create(
   persist(
@@ -11,94 +11,138 @@ const useAuthStore = create(
 
       login: async (email, password) => {
         try {
-          // Try Supabase authentication first
-          if (supabase && !supabase.supabaseUrl.includes('your-project')) {
-            const { data, error } = await supabase.auth.signInWithPassword({
-              email,
-              password
-            });
-
-            if (error) throw error;
-
-            // Get user profile
-            const { data: profile } = await supabase
-              .from('user_profiles_ts2024')
-              .select('*')
-              .eq('id', data.user.id)
-              .single();
-
-            const user = {
-              id: data.user.id,
-              email: data.user.email,
-              name: profile?.name || data.user.email.split('@')[0],
-              role: profile?.role || 'user',
-              permissions: profile?.permissions || []
-            };
-
-            set({ user, isAuthenticated: true, permissions: user.permissions });
-            return { success: true };
-          }
-
-          // Fallback to local authentication
-          if (email === 'admin@trade.com' && password === 'admin123') {
-            const user = {
-              id: 1,
+          // Always try local authentication first for demo credentials
+          const localCredentials = [
+            {
               email: 'admin@trade.com',
-              name: 'Andrea',
-              role: 'admin',
-              permissions: ['all']
-            };
-            set({ user, isAuthenticated: true, permissions: user.permissions });
-            return { success: true };
-          } else if (email === 'secretary@trade.com' && password === 'secretary123') {
-            const user = {
-              id: 2,
+              password: 'admin123',
+              user: {
+                id: 1,
+                email: 'admin@trade.com',
+                name: 'Andrea Amministratore',
+                role: 'admin',
+                permissions: ['all']
+              }
+            },
+            {
               email: 'secretary@trade.com',
-              name: 'Segreteria',
-              role: 'manager',
-              permissions: [
-                'orders.read',
-                'orders.write',
-                'clients.read',
-                'clients.write',
-                'vendors.read',
-                'vendors.write',
-                'warehouse.read',
-                'warehouse.write',
-                'analytics.read',
-                'reports.read'
-              ]
-            };
-            set({ user, isAuthenticated: true, permissions: user.permissions });
-            return { success: true };
-          } else if (email === 'mobile@trade.com' && password === 'mobile123') {
-            const user = {
-              id: 3,
+              password: 'secretary123',
+              user: {
+                id: 2,
+                email: 'secretary@trade.com',
+                name: 'Segreteria',
+                role: 'manager',
+                permissions: [
+                  'orders.read', 'orders.write', 'clients.read', 'clients.write',
+                  'vendors.read', 'vendors.write', 'warehouse.read', 'warehouse.write',
+                  'analytics.read', 'reports.read'
+                ]
+              }
+            },
+            {
               email: 'mobile@trade.com',
-              name: 'Utente Mobile',
-              role: 'mobile',
-              permissions: ['orders.read.public']
-            };
-            set({ user, isAuthenticated: true, permissions: user.permissions });
+              password: 'mobile123',
+              user: {
+                id: 3,
+                email: 'mobile@trade.com',
+                name: 'Utente Mobile',
+                role: 'mobile',
+                permissions: ['orders.read.public']
+              }
+            }
+          ];
+
+          // Check local credentials first
+          const localUser = localCredentials.find(
+            cred => cred.email === email && cred.password === password
+          );
+
+          if (localUser) {
+            set({
+              user: localUser.user,
+              isAuthenticated: true,
+              permissions: localUser.user.permissions
+            });
             return { success: true };
           }
 
-          return { success: false, error: 'Credenziali non valide' };
+          // If not local credentials and Supabase is available, try Supabase authentication
+          if (isSupabaseAvailable()) {
+            try {
+              const { data, error } = await supabase.auth.signInWithPassword({
+                email,
+                password
+              });
+
+              if (error) {
+                // If Supabase fails, return error for non-demo credentials
+                return { 
+                  success: false, 
+                  error: 'Credenziali non valide. Usa le credenziali demo o configura Supabase.' 
+                };
+              }
+
+              // Get user profile from Supabase
+              const { data: profile } = await supabase
+                .from('user_profiles_ts2024')
+                .select('*')
+                .eq('id', data.user.id)
+                .single();
+
+              const user = {
+                id: data.user.id,
+                email: data.user.email,
+                name: profile?.name || data.user.email.split('@')[0],
+                role: profile?.role || 'user',
+                permissions: profile?.permissions || []
+              };
+
+              set({
+                user,
+                isAuthenticated: true,
+                permissions: user.permissions
+              });
+
+              return { success: true };
+            } catch (supabaseError) {
+              console.error('Supabase authentication error:', supabaseError);
+              return { 
+                success: false, 
+                error: 'Errore di connessione. Usa le credenziali demo.' 
+              };
+            }
+          }
+
+          // If neither local nor Supabase worked
+          return { 
+            success: false, 
+            error: 'Credenziali non valide. Usa: admin@trade.com / admin123' 
+          };
+
         } catch (error) {
           console.error('Login error:', error);
-          return { success: false, error: error.message || 'Errore durante il login' };
+          return { 
+            success: false, 
+            error: 'Errore durante il login. Usa le credenziali demo.' 
+          };
         }
       },
 
       logout: async () => {
         try {
-          if (supabase && !supabase.supabaseUrl.includes('your-project')) {
+          // Only try to logout from Supabase if we're using Supabase auth
+          if (isSupabaseAvailable() && get().user?.id && typeof get().user.id === 'string') {
             await supabase.auth.signOut();
           }
         } catch (error) {
           console.error('Logout error:', error);
         }
-        set({ user: null, isAuthenticated: false, permissions: [] });
+        
+        set({
+          user: null,
+          isAuthenticated: false,
+          permissions: []
+        });
       },
 
       updateUserRole: (userId, newRole, newPermissions) => {
@@ -118,10 +162,12 @@ const useAuthStore = create(
 
       hasPermission: (permission) => {
         const { user, permissions } = get();
+        
         // Admin has all permissions
         if (user?.role === 'admin' || permissions.includes('all')) {
           return true;
         }
+        
         // Check specific permission
         return permissions.includes(permission);
       },
@@ -147,8 +193,8 @@ const useAuthStore = create(
           'predictive-analytics': ['analytics.read'],
           'reports': ['reports.read'],
           'suggestions': ['users.read'], // Admin only
-          'api-keys': ['users.read'],    // Admin only
-          'roles': ['users.read'],       // Admin only
+          'api-keys': ['users.read'], // Admin only
+          'roles': ['users.read'], // Admin only
           'settings': ['users.read']
         };
 
